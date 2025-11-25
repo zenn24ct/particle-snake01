@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Particle Snake — Balanced (調整版)</title>
+    <title>Particle Snake</title>
     <style>
       html,body{height:100%;margin:0;background:#041026;color:#fff;font-family:system-ui,Arial}
       .wrap{display:flex;flex-direction:column;height:100%}
@@ -83,7 +83,7 @@
 
       // history/body
       let history = [];
-      let bodyLength = 1; // 初期体長を少し増やした（開始の安定化）
+      let bodyLength = 1; //初期は1
 
       // game tuning (balanced)
       const T = {

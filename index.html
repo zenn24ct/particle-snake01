@@ -1,291 +1,292 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Particle Snake01</title>
-<style>
-  html,body{height:100%;margin:0;background:#041026;color:#fff;font-family:system-ui,Arial}
-  .wrap{display:flex;flex-direction:column;height:100%}
-  header{padding:12px;display:flex;justify-content:space-between;align-items:center}
-  canvas{flex:1;display:block;width:100%;height:calc(100% - 60px);touch-action:none}
-  .controls{padding:8px 12px;background:rgba(255,255,255,0.02);display:flex;gap:8px;align-items:center}
-  button{padding:6px 10px;border-radius:6px;background:#0b1220;color:#fff;border:1px solid rgba(255,255,255,0.04)}
-  .overlay{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-  .msg{background:rgba(0,0,0,0.6);padding:14px 18px;border-radius:10px;font-weight:bold;pointer-events:auto}
-</style>
-</head>
-<body>
-  <div class="wrap" id="wrap">
-    <header>
-      <div>Particle Snake — Balanced</div>
-      <div id="score">Score: 0</div>
-    </header>
-    <div style="position:relative;flex:1">
-      <canvas id="c"></canvas>
-      <div class="overlay" id="overlay" style="display:none">
-        <div class="msg" id="overlayText">Game Over</div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Particle Snake — Balanced (調整版)</title>
+    <style>
+      html,body{height:100%;margin:0;background:#041026;color:#fff;font-family:system-ui,Arial}
+      .wrap{display:flex;flex-direction:column;height:100%}
+      header{padding:12px;display:flex;justify-content:space-between;align-items:center}
+      canvas{flex:1;display:block;width:100%;height:calc(100% - 60px);touch-action:none}
+      .controls{padding:8px 12px;background:rgba(255,255,255,0.02);display:flex;gap:8px;align-items:center}
+      button{padding:6px 10px;border-radius:6px;background:#0b1220;color:#fff;border:1px solid rgba(255,255,255,0.04)}
+      .overlay{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+      .msg{background:rgba(0,0,0,0.6);padding:14px 18px;border-radius:10px;font-weight:bold;pointer-events:auto}
+    </style>
+  </head>
+  <body>
+    <div class="wrap" id="wrap">
+      <header>
+        <div>Particle Snake — Balanced</div>
+        <div id="score">Score: 0</div>
+      </header>
+      <div style="position:relative;flex:1">
+        <canvas id="c"></canvas>
+        <div class="overlay" id="overlay" style="display:none">
+          <div class="msg" id="overlayText">Game Over</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="start">Start / Restart</button>
+        <button id="pause">Pause</button>
+        <button id="clear">Clear</button>
+        <div style="flex:1"></div>
+        <div style="opacity:0.8;font-size:13px">
+          Drag / Touch to move the head — now gentler
+        </div>
       </div>
     </div>
-    <div class="controls">
-      <button id="start">Start / Restart</button>
-      <button id="pause">Pause</button>
-      <button id="clear">Clear</button>
-      <div style="flex:1"></div>
-      <div style="opacity:0.8;font-size:13px">Drag / Touch to move the head — now gentler</div>
-    </div>
-  </div>
 
-<script>
-/*
- Balanced adjustments summary:
- - base follow reduced, friction increased
- - velocity capped (maxHeadSpeed)
- - longer safeIgnore before self-collision check
- - wall margin to avoid early wall hits
- - slightly larger initial body length
-*/
+    <script>
+      /*
+       Balanced adjustments summary:
+       - base follow reduced, friction increased
+       - velocity capped (maxHeadSpeed)
+       - longer safeIgnore before self-collision check
+       - wall margin to avoid early wall hits
+       - slightly larger initial body length
+      */
 
-// canvas
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let DPR = Math.max(1, window.devicePixelRatio || 1);
+      // canvas
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d');
+      let DPR = Math.max(1, window.devicePixelRatio || 1);
 
-function resize() {
-  DPR = Math.max(1, window.devicePixelRatio || 1);
-  const cssW = canvas.offsetWidth || document.documentElement.clientWidth;
-  const cssH = canvas.offsetHeight || (window.innerHeight - 60);
-  canvas.width = Math.floor(cssW * DPR);
-  canvas.height = Math.floor(cssH * DPR);
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-}
-window.addEventListener('resize', resize);
-resize();
+      function resize() {
+        DPR = Math.max(1, window.devicePixelRatio || 1);
+        const cssW = canvas.offsetWidth || document.documentElement.clientWidth;
+        const cssH = canvas.offsetHeight || (window.innerHeight - 60);
+        canvas.width = Math.floor(cssW * DPR);
+        canvas.height = Math.floor(cssH * DPR);
+        ctx.setTransform(DPR,0,0,DPR,0,0);
+      }
+      window.addEventListener('resize', resize);
+      resize();
 
-function logicalW(){ return canvas.width / DPR; }
-function logicalH(){ return canvas.height / DPR; }
+      function logicalW(){ return canvas.width / DPR; }
+      function logicalH(){ return canvas.height / DPR; }
 
-// state
-let running = false;
-let paused = false;
-let score = 0;
-const scoreEl = document.getElementById('score');
-const overlay = document.getElementById('overlay');
-const overlayText = document.getElementById('overlayText');
+      // state
+      let running = false;
+      let paused = false;
+      let score = 0;
+      const scoreEl = document.getElementById('score');
+      const overlay = document.getElementById('overlay');
+      const overlayText = document.getElementById('overlayText');
 
-function setScore(v){ score = v; scoreEl.textContent = 'Score: ' + score; }
+      function setScore(v){ score = v; scoreEl.textContent = 'Score: ' + score; }
 
-// head & pointer
-const head = { x: 0, y: 0, vx:0, vy:0 };
-const pointer = { x: 0, y: 0, down:false };
+      // head & pointer
+      const head = { x: 0, y: 0, vx:0, vy:0 };
+      const pointer = { x: 0, y: 0, down:false };
 
-// history/body
-let history = [];
-let bodyLength = 22; // 初期体長を少し増やした（開始の安定化）
+      // history/body
+      let history = [];
+      let bodyLength = 1; // 初期体長を少し増やした（開始の安定化）
 
-// game tuning (balanced)
-const T = {
-  followFactor: 0.012,    // <= 低めに：ヘッドがゆっくりポインタへ追従
-  friction: 0.92,         // 摩擦（減衰）：大きくして安定化
-  maxHeadSpeed: 6.0,      // ヘッド速度の上限（ピクセル/frame）
-  emitPerFrame: 1.2,
-  eatRadius: 14,
-  safeIgnoreBase: 18,     // 自己衝突判定時に無視する履歴数（増やした）
-  wallMargin: 8,          // 壁判定マージン：端で即死を防ぐ
-};
+      // game tuning (balanced)
+      const T = {
+        followFactor: 0.012,    // <= 低めに：ヘッドがゆっくりポインタへ追従
+        friction: 0.92,         // 摩擦（減衰）：大きくして安定化
+        maxHeadSpeed: 6.0,      // ヘッド速度の上限（ピクセル/frame）
+        emitPerFrame: 1.2,
+        eatRadius: 14,
+        safeIgnoreBase: 18,     // 自己衝突判定時に無視する履歴数（増やした）
+        wallMargin: 8,          // 壁判定マージン：端で即死を防ぐ
+      };
 
-// food
-let food = { x:50, y:50, r:10 };
-function spawnFood(){
-  const padding = 36;
-  const W = logicalW(), H = logicalH();
-  food.x = Math.random()*(W - padding*2) + padding;
-  food.y = Math.random()*(H - padding*2) + padding;
-}
+      // food
+      let food = { x:50, y:50, r:10 };
+      function spawnFood(){
+        const padding = 36;
+        const W = logicalW(), H = logicalH();
+        food.x = Math.random()*(W - padding*2) + padding;
+        food.y = Math.random()*(H - padding*2) + padding;
+      }
 
-// pointer events (pointer API)
-function getPointerPos(e){
-  const rect = canvas.getBoundingClientRect();
-  if (e.touches && e.touches[0]) {
-    return { x: (e.touches[0].clientX - rect.left), y: (e.touches[0].clientY - rect.top) };
-  } else {
-    return { x: (e.clientX - rect.left), y: (e.clientY - rect.top) };
-  }
-}
-canvas.addEventListener('pointerdown', (e)=>{ const p = getPointerPos(e); pointer.down = true; pointer.x = p.x; pointer.y = p.y; });
-window.addEventListener('pointerup', ()=>{ pointer.down = false; });
-canvas.addEventListener('pointermove', (e)=>{ const p = getPointerPos(e); pointer.x = p.x; pointer.y = p.y; });
+      // pointer events (pointer API)
+      function getPointerPos(e){
+        const rect = canvas.getBoundingClientRect();
+        if (e.touches && e.touches[0]) {
+          return { x: (e.touches[0].clientX - rect.left), y: (e.touches[0].clientY - rect.top) };
+        } else {
+          return { x: (e.clientX - rect.left), y: (e.clientY - rect.top) };
+        }
+      }
+      canvas.addEventListener('pointerdown', (e)=>{ const p = getPointerPos(e); pointer.down = true; pointer.x = p.x; pointer.y = p.y; });
+      window.addEventListener('pointerup', ()=>{ pointer.down = false; });
+      canvas.addEventListener('pointermove', (e)=>{ const p = getPointerPos(e); pointer.x = p.x; pointer.y = p.y; });
 
-// utils
-function rand(a,b){ return Math.random()*(b-a)+a; }
-function dist(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return Math.sqrt(dx*dx+dy*dy); }
+      // utils
+      function rand(a,b){ return Math.random()*(b-a)+a; }
+      function dist(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return Math.sqrt(dx*dx+dy*dy); }
 
-// particles minimal
-const particles = [];
-function emit(x,y,vx,vy){
-  particles.push({ x,y,vx,vy,life:32 });
-  if (particles.length > 900) particles.splice(0, particles.length - 900);
-}
+      // particles minimal
+      const particles = [];
+      function emit(x,y,vx,vy){
+        particles.push({ x,y,vx,vy,life:32 });
+        if (particles.length > 900) particles.splice(0, particles.length - 900);
+      }
 
-// overlay
-function showOverlay(msg){
-  overlayText.textContent = msg;
-  overlay.style.display = 'flex';
-  setTimeout(()=> overlay.style.display = 'none', 1000);
-}
+      // overlay
+      function showOverlay(msg){
+        overlayText.textContent = msg;
+        overlay.style.display = 'flex';
+        setTimeout(()=> overlay.style.display = 'none', 1000);
+      }
 
-// start/restart
-function start(){
-  resize();
-  history = [];
-  bodyLength = 22;
-  head.x = logicalW()/2;
-  head.y = logicalH()/2;
-  head.vx = head.vy = 0;
-  pointer.x = head.x; pointer.y = head.y;
-  setScore(0);
-  spawnFood();
-  particles.length = 0;
-  running = true;
-  paused = false;
-}
-document.getElementById('start').addEventListener('click', start);
-document.getElementById('clear').addEventListener('click', ()=> { history = []; particles.length = 0; ctx.clearRect(0,0,canvas.width/DPR,canvas.height/DPR); } );
-document.getElementById('pause').addEventListener('click', ()=> { paused = !paused; document.getElementById('pause').textContent = paused ? 'Resume' : 'Pause'; });
+      // start/restart
+      function start(){
+        resize();
+        history = [];
+        bodyLength = 1;
+        head.x = logicalW()/2;
+        head.y = logicalH()/2;
+        head.vx = head.vy = 0;
+        pointer.x = head.x; pointer.y = head.y;
+        setScore(0);
+        spawnFood();
+        particles.length = 0;
+        running = true;
+        paused = false;
+      }
+      document.getElementById('start').addEventListener('click', start);
+      document.getElementById('clear').addEventListener('click', ()=> { history = []; particles.length = 0; ctx.clearRect(0,0,canvas.width/DPR,canvas.height/DPR); } );
+      document.getElementById('pause').addEventListener('click', ()=> { paused = !paused; document.getElementById('pause').textContent = paused ? 'Resume' : 'Pause'; });
 
-let last = performance.now();
-function loop(now){
-  const dt = Math.min(60, now - last);
-  last = now;
-  resize();
-  if (running && !paused) update(dt);
-  render();
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
+      let last = performance.now();
+      function loop(now){
+        const dt = Math.min(60, now - last);
+        last = now;
+        resize();
+        if (running && !paused) update(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
 
-function update(dt){
-  // safety for pointer
-  if (!isFinite(pointer.x) || !isFinite(pointer.y)) { pointer.x = head.x; pointer.y = head.y; }
+      function update(dt){
+        // safety for pointer
+        if (!isFinite(pointer.x) || !isFinite(pointer.y)) { pointer.x = head.x; pointer.y = head.y; }
 
-  // smooth follow with weaker factor: distance-scaled acceleration
-  const dx = pointer.x - head.x;
-  const dy = pointer.y - head.y;
-  const distance = Math.sqrt(dx*dx + dy*dy) || 1;
-  // smaller followFactor means gentler movement
-  const accel = T.followFactor * distance * (dt/16.6);
-  head.vx += (dx / distance) * accel;
-  head.vy += (dy / distance) * accel;
+        // smooth follow with weaker factor: distance-scaled acceleration
+        const dx = pointer.x - head.x;
+        const dy = pointer.y - head.y;
+        const distance = Math.sqrt(dx*dx + dy*dy) || 1;
+        // smaller followFactor means gentler movement
+        const accel = T.followFactor * distance * (dt/16.6);
+        head.vx += (dx / distance) * accel;
+        head.vy += (dy / distance) * accel;
 
-  // cap head speed to avoid explosive bursts
-  const speed = Math.sqrt(head.vx*head.vx + head.vy*head.vy);
-  if (speed > T.maxHeadSpeed) {
-    const scale = T.maxHeadSpeed / speed;
-    head.vx *= scale;
-    head.vy *= scale;
-  }
+        // cap head speed to avoid explosive bursts
+        const speed = Math.sqrt(head.vx*head.vx + head.vy*head.vy);
+        if (speed > T.maxHeadSpeed) {
+          const scale = T.maxHeadSpeed / speed;
+          head.vx *= scale;
+          head.vy *= scale;
+        }
 
-  // apply friction
-  head.vx *= T.friction;
-  head.vy *= T.friction;
-  head.x += head.vx * (dt/16.6);
-  head.y += head.vy * (dt/16.6);
+        // apply friction
+        head.vx *= T.friction;
+        head.vy *= T.friction;
+        head.x += head.vx * (dt/16.6);
+        head.y += head.vy * (dt/16.6);
 
-  // maintain history
-  history.unshift({ x: head.x, y: head.y });
-  if (history.length > 1800) history.length = 1800;
-  const desired = Math.max(10, Math.floor(bodyLength * 4));
-  if (history.length > desired) history.length = desired;
+        // maintain history
+        history.unshift({ x: head.x, y: head.y });
+        if (history.length > 1800) history.length = 1800;
+        const desired = Math.max(10, Math.floor(bodyLength * 4));
+        if (history.length > desired) history.length = desired;
 
-  // eat food
-  if (dist(head.x, head.y, food.x, food.y) < food.r + T.eatRadius) {
-    setScore(score + 1);
-    bodyLength += 4;
-    spawnFood();
-    for (let i=0;i<22;i++) emit(food.x + rand(-10,10), food.y + rand(-10,10), rand(-2,2), rand(-2,2));
-  }
+        // eat food
+        if (dist(head.x, head.y, food.x, food.y) < food.r + T.eatRadius) {
+          setScore(score + 1);
+          bodyLength += 2;
+          spawnFood();
+          for (let i=0;i<22;i++) emit(food.x + rand(-10,10), food.y + rand(-10,10), rand(-2,2), rand(-2,2));
+        }
 
-  // trail emission (gentle)
-  if (Math.random() < 0.6) emit(head.x + rand(-1.8,1.8), head.y + rand(-1.8,1.8), head.vx*0.2 + rand(-0.4,0.4), head.vy*0.2 + rand(-0.4,0.4));
+        // trail emission (gentle)
+        if (Math.random() < 0.6) emit(head.x + rand(-1.8,1.8), head.y + rand(-1.8,1.8), head.vx*0.2 + rand(-0.4,0.4), head.vy*0.2 + rand(-0.4,0.4));
 
-  // self collision: ignore more recent points (safeIgnore increases with bodyLength)
-  const safeIgnore = T.safeIgnoreBase + Math.floor(bodyLength / 2);
-  for (let i = safeIgnore; i < history.length; i += 5) {
-    const p = history[i];
-    if (!p) continue;
-    if (dist(head.x, head.y, p.x, p.y) < 10) {
-      running = false;
-      showOverlay('Game Over');
-      setTimeout(()=> start(), 800);
-      return;
-    }
-  }
+        // self collision: ignore more recent points (safeIgnore increases with bodyLength)
+        const safeIgnore = T.safeIgnoreBase + Math.floor(bodyLength / 2);
+        for (let i = safeIgnore; i < history.length; i += 5) {
+          const p = history[i];
+          if (!p) continue;
+          if (dist(head.x, head.y, p.x, p.y) < 10) {
+            running = false;
+            showOverlay('Game Over');
+            setTimeout(()=> start(), 800);
+            return;
+          }
+        }
 
-  // wall collision with margin
-  if (head.x < T.wallMargin || head.x > logicalW() - T.wallMargin || head.y < T.wallMargin || head.y > logicalH() - T.wallMargin) {
-    running = false;
-    showOverlay('Hit Wall');
-    setTimeout(()=> start(), 800);
-    return;
-  }
+        // wall collision with margin
+        if (head.x < T.wallMargin || head.x > logicalW() - T.wallMargin || head.y < T.wallMargin || head.y > logicalH() - T.wallMargin) {
+          running = false;
+          showOverlay('Hit Wall');
+          setTimeout(()=> start(), 800);
+          return;
+        }
 
-  // particle update
-  for (let i = particles.length - 1; i >= 0; i--){
-    const p = particles[i];
-    p.vx *= 0.98; p.vy *= 0.98; p.vy += 0.015;
-    p.x += p.vx; p.y += p.vy;
-    p.life -= 1;
-    if (p.life <= 0) particles.splice(i,1);
-  }
-}
+        // particle update
+        for (let i = particles.length - 1; i >= 0; i--){
+          const p = particles[i];
+          p.vx *= 0.98; p.vy *= 0.98; p.vy += 0.015;
+          p.x += p.vx; p.y += p.vy;
+          p.life -= 1;
+          if (p.life <= 0) particles.splice(i,1);
+        }
+      }
 
-function render(){
-  // fade background for trails
-  ctx.fillStyle = 'rgba(2,6,15,0.12)';
-  ctx.fillRect(0,0,canvas.width/DPR,canvas.height/DPR);
+      function render(){
+        // fade background for trails
+        ctx.fillStyle = 'rgba(2,6,15,0.12)';
+        ctx.fillRect(0,0,canvas.width/DPR,canvas.height/DPR);
 
-  // draw particles (lighter blending)
-  ctx.globalCompositeOperation = 'lighter';
-  for (let p of particles){
-    const a = Math.max(0, p.life / 32);
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(255,200,160,${a})`;
-    ctx.arc(p.x, p.y, Math.max(0.5, p.life*0.07 + 0.6), 0, Math.PI*2);
-    ctx.fill();
-  }
-  ctx.globalCompositeOperation = 'source-over';
+        // draw particles (lighter blending)
+        ctx.globalCompositeOperation = 'lighter';
+        for (let p of particles){
+          const a = Math.max(0, p.life / 32);
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,200,160,${a})`;
+          ctx.arc(p.x, p.y, Math.max(0.5, p.life*0.07 + 0.6), 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'source-over';
 
-  // draw body from history (fewer segments for performance)
-  const segs = Math.max(6, Math.floor(bodyLength));
-  const step = Math.max(1, Math.floor(history.length / segs));
-  for (let i=0;i<segs;i++){
-    const idx = Math.min(history.length-1, i*step);
-    const p = history[idx];
-    if (!p) continue;
-    const t = i/segs;
-    const size = 10 * (1 - t) + 2;
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(${Math.floor(200*(1-t)+55)}, ${Math.floor(100*t+80)}, ${Math.floor(220*t+35)}, ${0.18 + (1-t)*0.6})`;
-    ctx.arc(p.x, p.y, size, 0, Math.PI*2);
-    ctx.fill();
-  }
+        // draw body from history (fewer segments for performance)
+        const segs = Math.max(6, Math.floor(bodyLength));
+        const step = Math.max(1, Math.floor(history.length / segs));
+        for (let i=0;i<segs;i++){
+          const idx = Math.min(history.length-1, i*step);
+          const p = history[idx];
+          if (!p) continue;
+          const t = i/segs;
+          const size = 10 * (1 - t) + 2;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(${Math.floor(200*(1-t)+55)}, ${Math.floor(100*t+80)}, ${Math.floor(220*t+35)}, ${0.18 + (1-t)*0.6})`;
+          ctx.arc(p.x, p.y, size, 0, Math.PI*2);
+          ctx.fill();
+        }
 
-  // head
-  ctx.beginPath();
-  ctx.fillStyle = '#ffffff';
-  ctx.arc(head.x, head.y, 6.5, 0, Math.PI*2);
-  ctx.fill();
+        // head
+        ctx.beginPath();
+        ctx.fillStyle = '#ffffff';
+        ctx.arc(head.x, head.y, 6.5, 0, Math.PI*2);
+        ctx.fill();
 
-  // food
-  ctx.beginPath();
-  ctx.fillStyle = 'orange';
-  ctx.arc(food.x, food.y, food.r, 0, Math.PI*2);
-  ctx.fill();
-}
+        // food
+        ctx.beginPath();
+        ctx.fillStyle = 'orange';
+        ctx.arc(food.x, food.y, food.r, 0, Math.PI*2);
+        ctx.fill();
+      }
 
-// initial start
-setTimeout(()=> start(), 80);
-
-</script>
-</body>
+      // initial start
+      setTimeout(()=> start(), 80);
+    </script>
+  </body>
 </html>
